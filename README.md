@@ -1,5 +1,7 @@
 # Interpretability-based Rumor Detection
 
+谣言检测深度学习模型 — 二分类（0=非谣言, 1=谣言）。
+
 ## 环境要求
 
 - Python 3.11
@@ -15,45 +17,66 @@ pip install pandas scikit-learn joblib torch
 ## 项目结构
 
 ```
-├── run.py                  # BiGRU 训练入口：py -3.11 run.py
+├── predictor.py             # 统一推理接口（→ 可解释性模块调用）
+├── run_textcnn.py           # 训练入口（TextCNN + GloVe）
+├── run.py                   # 训练入口（BiGRU，备用）
 ├── config/
-│   └── config.py           # 超参数与路径配置
+│   ├── textcnn_config.py    # TextCNN 超参数
+│   └── config.py            # BiGRU 超参数
 ├── models/
-│   ├── bigru.py            # BiGRU 模型定义
-│   └── lr_model.py         # 逻辑回归基线模型 (✨新增加)
+│   ├── lr_model.py         # 逻辑回归基线模型
+│   ├── textcnn.py           # TextCNN 模型 (Kim 2014)
+│   └── bigru.py             # BiGRU 模型
 ├── utils/
-│   └── data_utils.py       # 数据加载、分词、词表构建
+│   ├── data_utils.py        # 分词、词表、Dataset/DataLoader
+│   └── glove_utils.py       # GloVe 下载与 embedding 矩阵构建
 ├── scripts/
 │   ├── train.py            # BiGRU 训练 + 评估流程
 │   ├── predict.py          # BiGRU 推理模块 (RumorClassifier)
-│   ├── train_lr.py         # 逻辑回归 训练 + 评估流程 (✨新增加)
-│   └── predict_lr.py       # 逻辑回归 推理模块 (LRRumorClassifier) (✨新增加)
+│   ├── train_lr.py         # 逻辑回归 训练 + 评估流程 
+│   └── predict_lr.py       # 逻辑回归 推理模块 (LRRumorClassifier) 
 ├── data/
 │   ├── train.csv           # 训练集
 │   └── val.csv             # 验证集
 ├── checkpoints/
 │   ├── bigru.pt            # 训练好的 BiGRU 模型权重
 │   ├── vocab.pt            # 词表
-│   └── lr_model.pkl        # 训练好的 逻辑回归 模型权重 (✨新增加)
+│   └── lr_model.pkl        # 训练好的 逻辑回归 模型权重
 └── interpretability/       # 可解释性模块 (待实现)
+│   ├── train_textcnn.py     # TextCNN 训练脚本
+│   ├── train.py             # BiGRU 训练脚本
+│   └── predict.py           # BiGRU 推理（备用）
+├── data/
+│   ├── train.csv            # 训练集 2,840 条
+│   └── val.csv              # 验证集 401 条
+└── checkpoints/             # 训练产物
+    ├── textcnn_glove.pt     # TextCNN 模型权重
+    └── vocab_textcnn.pt     # 词表
 ```
 
-## 使用方式
+## 快速开始
 
-### 训练模型
+### 训练
+
+首次运行自动下载 GloVe 6B 词向量（~822MB，仅一次）：
 
 ```bash
-cd Interpretability-based_rumor_detection
-py -3.11 run.py
+# Windows
+OMP_NUM_THREADS=10 MKL_NUM_THREADS=10 py -3.11 run_textcnn.py
+
+# Linux / macOS
+OMP_NUM_THREADS=10 py -3.11 run_textcnn.py
 ```
 
-### 推理预测
+### 推理
 
 ```python
-from scripts.predict import RumorClassifier
+from predictor import RumorDetector
 
-clf = RumorClassifier()
-result = clf.classify("your text here")   # 0=非谣言, 1=谣言
+detector = RumorDetector()
+label, confidence = detector.predict("Breaking: scientists discover alien life!")
+# label: 0 (非谣言) 或 1 (谣言)
+# confidence: 0.0 ~ 1.0
 ```
 
 ### 训练模型
@@ -90,3 +113,12 @@ Logistic Regression
 | Recall | 72.57% |
 | F1 Score | 78.15% |
 模型: Logistic Regression (feature=TF-IDF, max_features=10000, params=10,001)
+
+TextCNN + Glove
+| 指标 | 数值 |
+|------|:--:|
+| Accuracy | **86.78%** |
+| Precision (Rumor) | 87.65% |
+| Recall (Rumor) | 81.14% |
+| F1 Score | 84.27% |
+模型: TextCNN + Glove (Embedding dim=200, Filters=(2,3,4,5) × 256, Dropout=0.4, Batch size=32,Learning rate=5e-4)

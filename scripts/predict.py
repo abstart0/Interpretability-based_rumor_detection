@@ -11,7 +11,10 @@ import torch
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from config.config import MODEL_SAVE_PATH, VOCAB_SAVE_PATH, EMBEDDING_DIM, HIDDEN_DIM, DEVICE
+from config.config import (
+    MODEL_SAVE_PATH, VOCAB_SAVE_PATH,
+    EMBEDDING_DIM, HIDDEN_DIM, NUM_LAYERS, DROPOUT, DEVICE,
+)
 from models.bigru import BiGRU
 from utils.data_utils import encode, load_vocab
 
@@ -31,7 +34,10 @@ class RumorClassifier:
         vocab_path = vocab_path or VOCAB_SAVE_PATH
 
         self.vocab = load_vocab(vocab_path)
-        self.model = BiGRU(len(self.vocab), EMBEDDING_DIM, HIDDEN_DIM)
+        self.model = BiGRU(
+            len(self.vocab), EMBEDDING_DIM, HIDDEN_DIM,
+            num_layers=NUM_LAYERS, dropout=DROPOUT,
+        )
         self.model.load_state_dict(
             torch.load(model_path, map_location=DEVICE, weights_only=True)
         )
