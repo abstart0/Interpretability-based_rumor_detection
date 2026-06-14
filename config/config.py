@@ -1,5 +1,6 @@
 """
 Configuration for RNN rumor detection model.
+Optimal hyperparameters from grid search.
 """
 
 import os
@@ -16,14 +17,27 @@ MODEL_SAVE_PATH = os.path.join(CHECKPOINT_DIR, "bigru.pt")
 VOCAB_SAVE_PATH = os.path.join(CHECKPOINT_DIR, "vocab.pt")
 
 # ================ Hyperparameters ================
-EMBEDDING_DIM = 100      # Word embedding dimension
-HIDDEN_DIM = 128         # GRU hidden state dimension
-MAX_LEN = 64             # Max token length per text
-BATCH_SIZE = 32          # Training batch size
-EPOCHS = 10              # Number of training epochs
-LEARNING_RATE = 1e-3     # Adam learning rate
-WEIGHT_DECAY = 1e-5      # L2 regularization
-MIN_WORD_FREQ = 2        # Minimum word frequency for vocabulary
+EMBEDDING_DIM = 150       # grid search: 150 > 100, 200 (balanced)
+HIDDEN_DIM = 200          # grid search: 200 > 256, 128 (balanced)
+NUM_LAYERS = 1            # single layer: 2 layers overfits
+MAX_LEN = 64              # max text only 31 words
+BATCH_SIZE = 32           # grid search: bs=32 consistently beats bs=64
+EPOCHS = 20               # with early stopping
+LEARNING_RATE = 5e-4      # grid search: 5e-4 beats 1e-3
+WEIGHT_DECAY = 3e-4       # round 2 grid search: 3e-4 > 2e-4
+MIN_WORD_FREQ = 2
+DROPOUT = 0.5             # round 2 grid search: 0.5 > 0.4
+
+# ================ LR Scheduler ================
+LR_PATIENCE = 3
+LR_FACTOR = 0.5
+
+# ================ Early Stopping ================
+EARLY_STOP_PATIENCE = 7
+
+# ================ CPU Optimization ================
+CPU_THREADS = 10          # Ryzen AI 9 H 365 (10 cores)
+DATALOADER_WORKERS = 0    # 0 on Windows: multiprocessing kills data integrity
 
 # ================ Device ================
 DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")

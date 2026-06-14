@@ -1,10 +1,11 @@
 # Interpretability-based Rumor Detection
 
+谣言检测深度学习模型 — 二分类（0=非谣言, 1=谣言）。
+
 ## 环境要求
 
-- Python 3.11
-- PyTorch 2.4.0 (CPU)
-- 依赖见下方安装说明
+- **Python 3.11**
+- **PyTorch 2.4.0** (CPU)
 
 ## 安装
 
@@ -15,50 +16,82 @@ pip install pandas scikit-learn joblib torch==2.4.0
 ## 项目结构
 
 ```
-├── run.py                  # 训练入口：py -3.11 run.py
+├── predictor.py             # 统一推理接口（→ 可解释性模块调用）
+├── run_textcnn.py           # 训练入口（TextCNN + GloVe）
+├── run.py                   # 训练入口（BiGRU，备用）
 ├── config/
-│   └── config.py           # 超参数与路径配置
+│   ├── textcnn_config.py    # TextCNN 超参数
+│   └── config.py            # BiGRU 超参数
 ├── models/
-│   └── bigru.py            # BiGRU 模型定义
+│   ├── textcnn.py           # TextCNN 模型 (Kim 2014)
+│   └── bigru.py             # BiGRU 模型
 ├── utils/
-│   └── data_utils.py       # 数据加载、分词、词表构建
+│   ├── data_utils.py        # 分词、词表、Dataset/DataLoader
+│   └── glove_utils.py       # GloVe 下载与 embedding 矩阵构建
 ├── scripts/
-│   ├── train.py            # 训练 + 评估流程
-│   └── predict.py          # 推理模块 (RumorClassifier)
+│   ├── train_textcnn.py     # TextCNN 训练脚本
+│   ├── train.py             # BiGRU 训练脚本
+│   └── predict.py           # BiGRU 推理（备用）
 ├── data/
-│   ├── train.csv           # 训练集
-│   └── val.csv             # 验证集
-├── checkpoints/
-│   ├── bigru.pt            # 训练好的模型权重
-│   └── vocab.pt            # 词表
-└── interpretability/       # 可解释性模块 (待实现)
+│   ├── train.csv            # 训练集 2,840 条
+│   └── val.csv              # 验证集 401 条
+└── checkpoints/             # 训练产物
+    ├── textcnn_glove.pt     # TextCNN 模型权重
+    └── vocab_textcnn.pt     # 词表
 ```
 
-## 使用方式
+## 快速开始
 
-### 训练模型
+### 训练
+
+首次运行自动下载 GloVe 6B 词向量（~822MB，仅一次）：
 
 ```bash
-cd Interpretability-based_rumor_detection
-py -3.11 run.py
+# Windows
+OMP_NUM_THREADS=10 MKL_NUM_THREADS=10 py -3.11 run_textcnn.py
+
+# Linux / macOS
+OMP_NUM_THREADS=10 py -3.11 run_textcnn.py
 ```
 
-### 推理预测
+### 推理
 
 ```python
-from scripts.predict import RumorClassifier
+from predictor import RumorDetector
 
-clf = RumorClassifier()
-result = clf.classify("your text here")   # 0=非谣言, 1=谣言
+detector = RumorDetector()
+label, confidence = detector.predict("Breaking: scientists discover alien life!")
+# label: 0 (非谣言) 或 1 (谣言)
+# confidence: 0.0 ~ 1.0
 ```
 
-## 模型性能
+## 模型
+
+| 项目 | 说明 |
+|------|------|
+| 架构 | TextCNN (Kim 2014) — 多尺寸卷积核 + Max-over-time Pooling |
+| 词向量 | GloVe 6B 200d（Wikipedia + Gigaword 预训练），覆盖率 90.9% |
+| 卷积核 | 2/3/4/5-gram × 256 filters |
+| 参数量 | 1,264,249 |
+
+### 验证集性能
 
 | 指标 | 数值 |
-|------|------|
-| Accuracy | 85.04% |
-| Precision | 93.23% |
-| Recall | 70.86% |
-| F1 Score | 80.52% |
+|------|:--:|
+| Accuracy | **86.78%** |
+| Precision (Rumor) | 87.65% |
+| Recall (Rumor) | 81.14% |
+| F1 Score | 84.27% |
 
-模型: BiGRU (embedding=100, hidden=128, vocab=2727, params=449,597)
+### 超参数
+
+| 参数 | 值 |
+|------|-----|
+| Embedding dim | 200 (GloVe) |
+| Filters | (2, 3, 4, 5) × 256 |
+| Dropout | 0.4 |
+| Batch size | 32 |
+| Learning rate | 5e-4 (Adam) |
+| Weight decay | 2e-4 |
+| 词表（min_freq=2） | 2,727 |
+| Epochs | 20 (early stopping patience=7) |

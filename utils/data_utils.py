@@ -10,7 +10,7 @@ import pandas as pd
 import torch
 from torch.utils.data import Dataset, DataLoader
 
-from config.config import MAX_LEN
+from config.config import MAX_LEN, DATALOADER_WORKERS
 
 
 def tokenize(text: str) -> list:
@@ -99,7 +99,13 @@ def create_dataloaders(train_path: str, val_path: str, batch_size: int):
     train_dataset = RumorDataset(train_df, vocab)
     val_dataset = RumorDataset(val_df, vocab)
 
-    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
-    val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
+    train_loader = DataLoader(
+        train_dataset, batch_size=batch_size, shuffle=True,
+        num_workers=DATALOADER_WORKERS, pin_memory=False,
+    )
+    val_loader = DataLoader(
+        val_dataset, batch_size=batch_size, shuffle=False,
+        num_workers=DATALOADER_WORKERS, pin_memory=False,
+    )
 
     return train_loader, val_loader, vocab
