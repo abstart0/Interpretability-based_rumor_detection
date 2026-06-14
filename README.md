@@ -62,8 +62,11 @@ result = clf.classify("your text here")   # 0=非谣言, 1=谣言
 cd Interpretability-based_rumor_detection
 python scripts/train_lr.py
 ```
+### 推理预测
 
+```python
 from scripts.predict_lr import LRRumorClassifier
+
 clf = LRRumorClassifier()
 result = clf.classify("your text here")   # 0=非谣言, 1=谣言
 ```
