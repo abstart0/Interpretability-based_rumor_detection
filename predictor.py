@@ -15,7 +15,6 @@ Usage:
 
 import os
 import sys
-import re
 
 import torch
 
@@ -24,7 +23,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from config.textcnn_config import (
     MODEL_SAVE_PATH, VOCAB_SAVE_PATH,
-    EMBEDDING_DIM, FILTER_SIZES, N_FILTERS, DROPOUT, MAX_LEN,
+    EMBEDDING_DIM, FILTER_SIZES, N_FILTERS, DROPOUT,
 )
 from models.textcnn import TextCNN
 from utils.data_utils import encode, load_vocab

@@ -5,7 +5,6 @@ Training and evaluation pipeline for the BiGRU rumor detection model.
 import os
 import sys
 import random
-import math
 
 import numpy as np
 import torch
@@ -15,10 +14,10 @@ from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_sc
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from config.config import (
+from config.bigru_config import (
     TRAIN_PATH, VAL_PATH, MODEL_SAVE_PATH, VOCAB_SAVE_PATH,
     EMBEDDING_DIM, HIDDEN_DIM, NUM_LAYERS, DROPOUT,
-    MAX_LEN, BATCH_SIZE, EPOCHS,
+    BATCH_SIZE, EPOCHS,
     LEARNING_RATE, WEIGHT_DECAY,
     LR_PATIENCE, LR_FACTOR, EARLY_STOP_PATIENCE,
     DEVICE, SEED, DATALOADER_WORKERS,
@@ -70,7 +69,7 @@ def evaluate(model: nn.Module, loader, criterion=None):
 
 
 def train():
-    """Main training procedure with scheduler, clipping, and early stopping."""
+    """Main training procedure with scheduler and early stopping."""
     set_seed(SEED)
     # CPU threading is handled via OMP_NUM_THREADS/MKL_NUM_THREADS env vars.
     # Do NOT call torch.set_num_threads() on Windows — it breaks OpenMP scheduling.
@@ -107,7 +106,7 @@ def train():
     total_params = sum(p.numel() for p in model.parameters())
     trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
     print(f"\n{'='*55}")
-    print(f"Model: Stacked BiGRU")
+    print(f"Model: BiGRU")
     print(f"  Embedding dim: {EMBEDDING_DIM}, Hidden dim: {HIDDEN_DIM}")
     print(f"  Layers: {NUM_LAYERS}, Dropout: {DROPOUT}")
     print(f"  Params: {total_params:,} ({trainable_params:,} trainable)")

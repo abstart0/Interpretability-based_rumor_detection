@@ -3,14 +3,15 @@ Data loading, tokenization, and dataset utilities for rumor detection.
 """
 
 import re
-import os
 from collections import Counter
 
 import pandas as pd
 import torch
 from torch.utils.data import Dataset, DataLoader
 
-from config.config import MAX_LEN, DATALOADER_WORKERS
+# Default constants (override per-model via config imports if needed)
+MAX_LEN = 64
+DATALOADER_WORKERS = 0  # Windows: must be 0
 
 
 def tokenize(text: str) -> list:

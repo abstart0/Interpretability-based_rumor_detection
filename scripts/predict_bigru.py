@@ -11,7 +11,7 @@ import torch
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from config.config import (
+from config.bigru_config import (
     MODEL_SAVE_PATH, VOCAB_SAVE_PATH,
     EMBEDDING_DIM, HIDDEN_DIM, NUM_LAYERS, DROPOUT, DEVICE,
 )

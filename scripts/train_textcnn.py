@@ -18,10 +18,10 @@ from config.textcnn_config import (
     TRAIN_PATH, VAL_PATH, MODEL_SAVE_PATH, VOCAB_SAVE_PATH,
     GLOVE_DIR, GLOVE_URL, GLOVE_FILE, GLOVE_DIM, GLOVE_FREEZE,
     EMBEDDING_DIM, FILTER_SIZES, N_FILTERS, DROPOUT,
-    MAX_LEN, BATCH_SIZE, EPOCHS, MIN_WORD_FREQ,
+    BATCH_SIZE, EPOCHS, MIN_WORD_FREQ,
     LEARNING_RATE, WEIGHT_DECAY,
     LR_PATIENCE, LR_FACTOR, EARLY_STOP_PATIENCE,
-    DEVICE, SEED, DATALOADER_WORKERS,
+    DEVICE, SEED,
 )
 from models.textcnn import TextCNN
 from utils.data_utils import create_dataloaders, build_vocab, save_vocab

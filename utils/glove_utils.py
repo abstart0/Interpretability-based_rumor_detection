@@ -7,7 +7,6 @@ import zipfile
 
 import numpy as np
 import torch
-import torch.nn as nn
 
 
 def load_glove(path: str) -> dict:
