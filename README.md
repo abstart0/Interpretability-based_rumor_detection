@@ -36,6 +36,25 @@ pip install -r requirements.txt
 - `scikit-learn`
 - `joblib`
 - `requests`（用于API调用）
+- `python-dotenv`（用于读取 .env 配置）
+
+### 3. Windows 环境注意事项
+
+Windows 下运行时会遇到 Intel MKL/OpenMP 重复初始化的警告，需要在运行前设置环境变量：
+
+**PowerShell：**
+```powershell
+$env:KMP_DUPLICATE_LIB_OK="TRUE"
+python main.py --text "你的推文内容"
+```
+
+**CMD：**
+```cmd
+set KMP_DUPLICATE_LIB_OK=TRUE
+python main.py --text "你的推文内容"
+```
+
+**永久解决**：在系统环境变量中添加 `KMP_DUPLICATE_LIB_OK=TRUE`。
 
 ## 数据集
 
@@ -47,12 +66,20 @@ pip install -r requirements.txt
 ## 项目结构
 
 ```
+├── main.py                   # CLI入口：检测+解释（单条/批量）
+├── evaluate.py               # 批量评估：检测指标计算+结果保存
 ├── predictor.py              # 统一推理接口（→ 可解释性模块调用）
 ├── run_textcnn.py            # 训练入口（TextCNN + GloVe）
 ├── run_bigru.py              # 训练入口（BiGRU）
 ├── config/
 │   ├── textcnn_config.py     # TextCNN 超参数
-│   └── bigru_config.py       # BiGRU 超参数
+│   ├── bigru_config.py       # BiGRU 超参数
+│   └── llm_config.py         # LLM API 配置
+├── explanation/              # 可解释性模块（成员C）
+│   ├── __init__.py           # 包入口
+│   ├── llm_client.py         # LLM API 客户端（含重试机制）
+│   ├── prompt_builder.py     # 提示词模板构建
+│   └── explainer.py          # 核心解释器：检测模型 + LLM 编排
 ├── models/
 │   ├── lr_model.py           # 逻辑回归模型
 │   ├── bigru.py              # BiGRU 模型
@@ -69,10 +96,11 @@ pip install -r requirements.txt
 ├── data/
 │   ├── train.csv             # 训练集 2,840 条
 │   └── val.csv               # 验证集 401 条
-└── checkpoints/              # 训练产物
-    ├── lr_model.pkl          # 逻辑回归模型 + 向量器
-    ├── bigru.pt / vocab.pt   # BiGRU 权重 + 词表
-    └── textcnn_glove.pt      # TextCNN 权重 + 词表
+├── checkpoints/              # 训练产物
+│   ├── lr_model.pkl          # 逻辑回归模型 + 向量器
+│   ├── bigru.pt / vocab.pt   # BiGRU 权重 + 词表
+│   └── textcnn_glove.pt      # TextCNN 权重 + 词表
+└── .env.example              # 环境变量模板
 ```
 
 ## 快速开始
@@ -91,54 +119,52 @@ py -3.11 run_textcnn.py
 ```
 训练后模型保存在 checkpoints 文件夹下
 
-### 推理（供可解释性模块调用）
+### 2. 配置 LLM API（可选，仅需要解释功能时）
 
-```python
-from predictor import RumorDetector
-
-detector = RumorDetector()                              # 默认加载 TextCNN+GloVe
-label, confidence = detector.predict("输入文本")
-# label: 0（非谣言）或 1（谣言）
-# confidence: 模型置信度 (0.0 ~ 1.0)
-```
-
-逻辑回归和 BiGRU 的独立推理接口：
-```python
-from scripts.predict_lr import LRRumorClassifier
-clf = LRRumorClassifier()
-result = clf.classify("输入文本")   # → 0 or 1
-
-from scripts.predict_bigru import RumorClassifier
-clf = RumorClassifier()
-result = clf.classify("输入文本")   # → 0 or 1
-```
-
-### 2. 配置LLM API
-
-在项目根目录创建 `.env` 文件：
+在项目根目录创建 `.env` 文件（参考 `.env.example`）：
 ```
 LLM_API_KEY=你的交大API密钥
-LLM_API_BASE=https://claw.sjtu.edu.cn/api/v1
+LLM_API_BASE=https://models.sjtu.edu.cn/api/v1
+LLM_MODEL_NAME=deepseek-chat
 ```
 详细API文档参考：[交大AI平台](https://claw.sjtu.edu.cn/guide/sjtu-api/)
 
 ### 3. 运行完整检测（含解释）
 
 ```bash
+# 单条文本检测+解释
 python main.py --text "你的推文内容"
 ```
 
+> **Windows 注意**：首次运行前需设置环境变量，详见[环境配置](#3-windows-环境注意事项)。
+
 示例输出：
-```json
+```
+=== Prediction ===
+label: 1
+confidence: 0.7278
+
+explanation: 该推文使用"BREAKING"吸引眼球，且"hundreds feared dead"表述模糊，
+             缺乏具体时间、来源或官方证实，符合未经验证谣言的常见特征。
+
+--- JSON ---
 {
-    "prediction": 1,
-    "explanation": "该推文使用了'紧急扩散'、'官方尚未证实'等谣言常见表述，且缺乏具体信息来源，因此判定为谣言。"
+    "label": 1,
+    "confidence": 0.7278,
+    "explanation": "该推文使用..."
 }
 ```
 
+输出说明：
+- **Output 1**：检测输出 — 2分类结果（0=非谣言，1=谣言）及模型置信度
+- **Output 2**：判断依据 — 一段自然语言文字，解释检测的判断依据
+
 ### 4. 批量评估验证集
 ```bash
-python evaluate.py --model lr --val-file data/val.csv
+# 评估验证集并计算指标
+python evaluate.py --model textcnn --val-file data/val.csv
+
+# 支持的模型：textcnn / bigru / lr
 ```
 
 
