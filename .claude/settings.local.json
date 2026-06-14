@@ -1,0 +1,25 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pip install *)",
+      "Bash(set KMP_DUPLICATE_LIB_OK=TRUE)",
+      "Bash(python main.py --text \"URGENT: Government secretly planning to impose martial law next week\")",
+      "Bash(export KMP_DUPLICATE_LIB_OK=TRUE)",
+      "Bash(python scripts/train_lr.py)",
+      "WebFetch(domain:claw.sjtu.edu.cn)",
+      "Bash(curl *)",
+      "Bash(python -c ' *)",
+      "Bash(chcp 65001)",
+      "Bash(python main.py --text \"URGENT: Government secretly planning to impose martial law next week\" --json)",
+      "Bash(PYTHONIOENCODING=utf-8 python main.py --text \"URGENT: Government secretly planning to impose martial law next week\" --json)",
+      "Bash(python -c \"import sys,codecs;sys.stdout=codecs.open\\(sys.stdout.fileno\\(\\),'w','utf-8',errors='replace'\\);print\\(sys.stdin.read\\(\\)\\)\")",
+      "Bash(PYTHONIOENCODING=utf-8 python -c ' *)",
+      "Bash(PYTHONIOENCODING=utf-8 python evaluate.py --model textcnn --dry-run)",
+      "Bash(python -c \"import subprocess; subprocess.check_call\\(['pip', 'install', 'pypdf']\\)\")",
+      "Bash(python evaluate.py --model textcnn --dry-run)",
+      "Bash(git init *)",
+      "Bash(git remote *)",
+      "Bash(git config *)"
+    ]
+  }
+}
