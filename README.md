@@ -10,6 +10,7 @@
 
 ```bash
 pip install pandas scikit-learn joblib torch
+```
 
 ## 项目结构
 
