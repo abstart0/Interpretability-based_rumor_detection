@@ -64,7 +64,6 @@ python scripts/train_lr.py
 ```
 
 from scripts.predict_lr import LRRumorClassifier
-
 clf = LRRumorClassifier()
 result = clf.classify("your text here")   # 0=非谣言, 1=谣言
 ```
