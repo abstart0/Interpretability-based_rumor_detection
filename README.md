@@ -31,7 +31,7 @@ pip install -r requirements.txt
 ```
 
 主要依赖包：
-- `torch==2.4.0`
+- `torch>=2.0.0`（自动匹配当前 Python 版本的兼容版本）
 - `pandas`
 - `scikit-learn`
 - `joblib`
@@ -109,13 +109,13 @@ python main.py --text "你的推文内容"
 
 ```bash
 # 逻辑回归（最快，~10 秒）
-py -3.11 scripts/train_lr.py
+python scripts/train_lr.py
 
 # BiGRU（~2 分钟）
-py -3.11 run_bigru.py
+python run_bigru.py
 
 # TextCNN + GloVe（最优，~5 分钟，首次下载 GloVe ~822MB）
-py -3.11 run_textcnn.py
+python run_textcnn.py
 ```
 训练后模型保存在 checkpoints 文件夹下
 
@@ -132,8 +132,13 @@ LLM_MODEL_NAME=deepseek-chat
 ### 3. 运行完整检测（含解释）
 
 ```bash
-# 单条文本检测+解释
+# 单条文本检测+解释（默认 TextCNN 模型）
 python main.py --text "你的推文内容"
+
+# 指定检测模型：textcnn / bigru / lr
+python main.py --model textcnn --text "你的推文内容"
+python main.py --model bigru --text "你的推文内容"
+python main.py --model lr --text "你的推文内容"
 ```
 
 > **Windows 注意**：首次运行前需设置环境变量，详见[环境配置](#3-windows-环境注意事项)。

@@ -31,6 +31,10 @@ def parse_args():
         help="Path to a CSV file containing a 'text' column. Explains all rows.",
     )
     parser.add_argument(
+        "--model", type=str, default="textcnn", choices=["textcnn", "bigru", "lr"],
+        help="Detection model to use (default: textcnn).",
+    )
+    parser.add_argument(
         "--temperature", type=float, default=None,
         help="LLM temperature override (default from config).",
     )
@@ -48,7 +52,7 @@ def main():
         print("Error: please provide --text or --text-file", file=sys.stderr)
         sys.exit(1)
 
-    explainer = RumorExplainer()
+    explainer = RumorExplainer(model=args.model)
 
     # Single text mode
     if args.text:

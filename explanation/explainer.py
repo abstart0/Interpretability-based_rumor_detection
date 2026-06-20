@@ -2,7 +2,7 @@
 Core explanation generator: bridges the rumor detection model and the LLM.
 
 This is the main entry point for the explainability component. It:
-  1. Loads the detection model (TextCNN by default)
+  1. Loads the detection model (TextCNN by default, supports lr/bigru)
   2. Runs prediction on the input text
   3. Constructs a prompt with the prediction result
   4. Calls the LLM to generate a natural language explanation
@@ -10,7 +10,7 @@ This is the main entry point for the explainability component. It:
 Usage:
     from explanation.explainer import RumorExplainer
 
-    explainer = RumorExplainer()
+    explainer = RumorExplainer(model="textcnn")
     result = explainer.explain("Breaking news: huge explosion downtown!")
     # result = {"label": 1, "confidence": 0.92, "explanation": "该推文使用了..."}
 """
@@ -30,16 +30,36 @@ class RumorExplainer:
 
     Combines a rumor detection model with an LLM to produce
     natural language explanations for each prediction.
+
+    Supported models: textcnn (default), bigru, lr
     """
 
-    def __init__(self, model_path: str = None, vocab_path: str = None, llm_client: LLMClient = None):
+    def __init__(self, model: str = "textcnn",
+                 model_path: str = None, vocab_path: str = None,
+                 llm_client: LLMClient = None):
         """
         Args:
-            model_path:  Path to the detection model checkpoint (passes to RumorDetector).
-            vocab_path:  Path to the vocabulary file (passes to RumorDetector).
-            llm_client:  Pre-configured LLMClient (creates a default one if None).
+            model:        Detection model name: "textcnn", "bigru", or "lr".
+            model_path:   Path to the detection model checkpoint.
+            vocab_path:   Path to the vocabulary file.
+            llm_client:   Pre-configured LLMClient (creates a default one if None).
         """
-        self.detector = RumorDetector(model_path=model_path, vocab_path=vocab_path)
+        self.model_name = model
+        if model == "textcnn":
+            self.detector = RumorDetector(model_path=model_path, vocab_path=vocab_path)
+        elif model == "bigru":
+            from scripts.predict_bigru import RumorClassifier
+            self._bigru_clf = RumorClassifier(
+                model_path=model_path, vocab_path=vocab_path
+            )
+            self.detector = None
+        elif model == "lr":
+            from scripts.predict_lr import LRRumorClassifier
+            self._lr_clf = LRRumorClassifier(model_path=model_path)
+            self.detector = None
+        else:
+            raise ValueError(f"Unsupported model: {model}. Choose from: textcnn, bigru, lr")
+
         self.llm_client = llm_client or LLMClient()
 
     def explain(self, text: str, llm_model: str = None,
@@ -63,7 +83,14 @@ class RumorExplainer:
             RuntimeError: If the LLM call fails after retries.
         """
         # Step 1: Run detection model
-        label, confidence = self.detector.predict(text)
+        if self.model_name == "textcnn":
+            label, confidence = self.detector.predict(text)
+        elif self.model_name == "bigru":
+            label = self._bigru_clf.classify(text)
+            confidence = 0.5  # BiGRU does not expose confidence
+        elif self.model_name == "lr":
+            label = self._lr_clf.classify(text)
+            confidence = 0.5  # LR does not expose confidence
 
         # Step 2: Build prompt with prediction result
         messages = build_explanation_prompt(text, label, confidence)
