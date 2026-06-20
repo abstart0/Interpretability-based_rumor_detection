@@ -16,10 +16,10 @@
 
 | 成员   | 任务                                         | 主要代码目录                  |
 | ------ | -------------------------------------------- | ----------------------------- |
-| 组长   | 项目整合、文档撰写、实验分析、报告汇总         | `/`, `/docs/`                 |
-| 成员A  | 模型开发、训练与评估                           | `/baseline_models/.../`       |
-| 成员B  | 模型开发、训练与评估                           | `/baseline_models/.../`       |
-| 成员C  | LLM API 接入、提示词设计、解释模块封装         | `/explanation/`               |
+| 简志辉 | 项目整合、文档撰写、实验分析、报告汇总         | `/`, `requirements.txt`, `report/`，`README.md` |
+| 朱俊慷 | 逻辑回归模型开发、训练与评估                   | `models/lr_model.py`, `scripts/train_lr.py`, `scripts/predict_lr.py` |
+| 李志政 | BiGRU与TextCNN + GloVe模型开发、训练与评估     | `models/bigru.py`, `models/textcnn.py`, `scripts/train_bigru.py`, `scripts/train_textcnn.py`, `utils/` |
+| 马扬子 | LLM API 接入、提示词设计、解释模块封装         | `explanation/`, `config/llm_config.py`,`main.py`, `evaluate.py` |
 
 ## 环境配置
 
@@ -43,6 +43,24 @@ pip install -r requirements.txt
 - `requests`（用于 LLM API 调用）
 - `python-dotenv`（环境变量配置）
 
+### 3. Windows 环境注意事项
+
+Windows 下运行时会遇到 Intel MKL/OpenMP 重复初始化的警告，需要在运行前设置环境变量：
+
+**PowerShell：**
+```powershell
+$env:KMP_DUPLICATE_LIB_OK="TRUE"
+python main.py --text "你的推文内容"
+```
+
+**CMD：**
+```cmd
+set KMP_DUPLICATE_LIB_OK=TRUE
+python main.py --text "你的推文内容"
+```
+
+**永久解决**：在系统环境变量中添加 `KMP_DUPLICATE_LIB_OK=TRUE`。
+
 ## 数据集
 
 - `data/train.csv`：训练集，字段包括 `id`, `text`, `label` (0非谣言/1谣言), `event`
@@ -51,40 +69,47 @@ pip install -r requirements.txt
 ## 项目结构
 
 ```
-├── main.py                 # 统一推理入口（供大作业演示调用）
-├── evaluate.py             # 批量评估脚本（检测+解释）
-├── run_bigru.py            # 训练入口（BiGRU）
-├── run_textcnn.py          # 训练入口（TextCNN + GloVe）
+├── main.py                   # CLI入口：检测+解释（单条/批量）
+├── evaluate.py               # 批量评估：检测指标计算+结果保存
+├── predictor.py              # 统一推理接口（→ 可解释性模块调用）
+├── run_textcnn.py            # 训练入口（TextCNN + GloVe）
+├── run_bigru.py              # 训练入口（BiGRU）
 ├── config/
-│   ├── config.py           # 公共配置（供 LR 模型使用）
-│   ├── textcnn_config.py   # TextCNN 超参数
-│   └── bigru_config.py     # BiGRU 超参数
+│   ├── textcnn_config.py     # TextCNN 超参数
+│   ├── bigru_config.py       # BiGRU 超参数
+│   └── llm_config.py         # LLM API 配置
+├── explanation/              # 可解释性模块（成员C）
+│   ├── __init__.py           # 包入口
+│   ├── llm_client.py         # LLM API 客户端（含重试机制）
+│   ├── prompt_builder.py     # 提示词模板构建
+│   └── explainer.py          # 核心解释器：检测模型 + LLM 编排
 ├── models/
-│   ├── lr_model.py         # 逻辑回归模型
-│   ├── bigru.py            # BiGRU 模型
-│   └── textcnn.py          # TextCNN 模型 (Kim 2014)
+│   ├── lr_model.py           # 逻辑回归模型
+│   ├── bigru.py              # BiGRU 模型
+│   └── textcnn.py            # TextCNN 模型 (Kim 2014)
 ├── utils/
-│   ├── data_utils.py       # 分词、词表、Dataset/DataLoader
-│   └── glove_utils.py      # GloVe 下载与 Embedding 矩阵构建
+│   ├── data_utils.py         # 分词、词表、Dataset/DataLoader
+│   └── glove_utils.py        # GloVe 下载与 Embedding 矩阵构建
 ├── scripts/
-│   ├── train_lr.py         # 逻辑回归训练
-│   ├── predict_lr.py       # 逻辑回归推理
-│   ├── train_bigru.py      # BiGRU 训练
-│   ├── train_textcnn.py    # TextCNN + GloVe 训练
-│   └── predict_bigru.py    # BiGRU 推理
-├── explanation/            # 可解释性模块（成员C负责）
-│   ├── __init__.py         # 包初始化，暴露 Explainer 类
-│   ├── llm_client.py       # 交大 LLM API 客户端封装
-│   └── explainer.py        # 解释器：拼接 prompt + 调用 LLM + 返回解释
-├── predictor.py            # 统一推理接口（RumorDetector）
+│   ├── train_lr.py           # 逻辑回归训练
+│   ├── predict_lr.py         # 逻辑回归推理
+│   ├── train_bigru.py        # BiGRU 训练
+│   ├── train_textcnn.py      # TextCNN + GloVe 训练
+│   └── predict_bigru.py      # BiGRU 推理
 ├── data/
-│   ├── train.csv           # 训练集 2,840 条
-│   └── val.csv             # 验证集 401 条
-├── checkpoints/            # 训练产物
-│   ├── lr_model.pkl        # 逻辑回归模型 + 向量器
-│   ├── bigru.pt / vocab.pt # BiGRU 权重 + 词表
-│   └── textcnn_glove.pt    # TextCNN 权重 + 词表
-└── .env                    # LLM API 密钥配置（需用户自行创建）
+│   ├── train.csv             # 训练集 2,840 条
+│   └── val.csv               # 验证集 401 条
+├── checkpoints/              # 训练产物
+│   ├── lr_model.pkl          # 逻辑回归模型 + 向量器
+│   ├── bigru.pt / vocab.pt   # BiGRU 权重 + 词表
+│   └── textcnn_glove.pt      # TextCNN 权重 + 词表
+├── report/                   # 实验报告与可视化
+│   ├── report.tex            # LaTeX 实验报告
+│   ├── report.pdf            # 实验报告 PDF
+│   ├── Figure_1.png          # 模型性能雷达图
+│   ├── Figure_2.png          # 模型性能柱状图
+│   └── Figure_3.png          # 混淆矩阵对比图
+└── .env.example              # 环境变量模板
 ```
 
 ## 快速开始
@@ -101,82 +126,65 @@ python run_bigru.py
 # TextCNN + GloVe（最优，~5 分钟，首次下载 GloVe ~822MB）
 python run_textcnn.py
 ```
+训练后模型保存在 checkpoints 文件夹下
 
-训练后模型保存在 `checkpoints` 文件夹下。
+### 2. 配置 LLM API（可选，仅需要解释功能时）
 
-### 2. 配置 LLM API
-
-在项目根目录创建 `.env` 文件：
-
+在项目根目录创建 `.env` 文件（参考 `.env.example`）：
 ```
 LLM_API_KEY=你的交大API密钥
 LLM_API_BASE=https://models.sjtu.edu.cn/api/v1
-LLM_MODEL=deepseek-reasoner
+LLM_MODEL_NAME=deepseek-chat
 ```
-
-> LLM_MODEL 可选值：`deepseek-chat`、`deepseek-reasoner`、`qwen`、`glm`、`minimax` 等（交大平台支持的模型均可）。
-> 使用 `deepseek-chat` 响应更快，使用 `deepseek-reasoner` 会输出思考过程。
+详细API文档参考：[交大AI平台](https://claw.sjtu.edu.cn/guide/sjtu-api/)
 
 ### 3. 运行完整检测（含解释）
 
 ```bash
-# 默认使用 TextCNN + GloVe 模型
+# 单条文本检测+解释（默认 TextCNN 模型）
 python main.py --text "你的推文内容"
+
+# 指定检测模型：textcnn / bigru / lr
+python main.py --model textcnn --text "你的推文内容"
+python main.py --model bigru --text "你的推文内容"
+python main.py --model lr --text "你的推文内容"
 ```
+
+> **Windows 注意**：首次运行前需设置环境变量，详见[环境配置](#3-windows-环境注意事项)。
 
 示例输出：
-
 ```
-正在加载检测模型 (textcnn)...
-检测结果: 谣言 (置信度: 67.9%)
-正在生成解释...
-解释: 该推文使用"BREAKING"等夸张措辞，缺乏具体科学证据和权威来源...
+=== Prediction ===
+label: 1
+confidence: 0.7278
 
-========================================
-         可解释谣言检测结果
-========================================
-输入文本: Scientists confirm COVID-19 was artificially created in a Chinese lab
-检测输出: 谣言 (类别 1, 置信度 67.9%)
-判断依据: 该推文使用"BREAKING"等夸张措辞，缺乏具体科学证据和权威来源，且"artificially created"带有强烈暗示性，易引发误导。
-========================================
-```
+explanation: 该推文使用"BREAKING"吸引眼球，且"hundreds feared dead"表述模糊，
+             缺乏具体时间、来源或官方证实，符合未经验证谣言的常见特征。
 
-支持切换检测模型：
-
-```bash
-python main.py --text "your tweet" --model lr
-python main.py --text "your tweet" --model bigru
-```
-
-JSON 格式输出（便于程序解析）：
-
-```bash
-python main.py --text "your tweet" --json
-```
-
-```json
+--- JSON ---
 {
-    "text": "Scientists confirm...",
-    "prediction": 1,
-    "label": "谣言",
-    "confidence": 0.6786,
-    "explanation": "该推文使用 BREAKING 等夸张措辞..."
+    "label": 1,
+    "confidence": 0.7278,
+    "explanation": "该推文使用..."
 }
 ```
 
+输出说明：
+- **Output 1**：检测输出 — 2分类结果（0=非谣言，1=谣言）及模型置信度
+- **Output 2**：判断依据 — 一段自然语言文字，解释检测的判断依据
+
 ### 4. 批量评估验证集
-
 ```bash
-# 仅检测，不调用 LLM（节省 API）
-python evaluate.py --model textcnn --dry-run
+# 评估验证集并计算指标
+python evaluate.py --model textcnn --val-file data/val.csv
 
-# 完整评估（检测 + LLM 解释）
-python evaluate.py --model textcnn --output val_results.json
+# 支持的模型：textcnn / bigru / lr
 ```
 
 
-
 ## 模型性能
+
+<img src="report/Figure_1.png" alt="各模型性能雷达图" width="500"/>
 
 ### TextCNN + GloVe（最优）
 
