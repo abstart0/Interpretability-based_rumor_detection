@@ -115,7 +115,28 @@
 
 \subsection{实施方案}
 
-我们采用“\textbf{多模型对比 + LLM解释}”的实施方案，具体包含以下三个环节。
+我们采用"\textbf{多模型对比 + LLM解释}"的实施方案。由组长统筹协调管理仓库，各自负责部分如下。
+
+\subsubsection{小组分工与贡献}
+
+\begin{table}[H]
+    \centering
+    \caption{小组分工与贡献比例}
+    \label{tab:division}
+    \begin{tabular}{p{2.2cm}p{6cm}p{2.5cm}p{2.5cm}}
+        \toprule
+        \textbf{成员} & \textbf{任务} & \textbf{主要代码目录}\\
+        \midrule
+        简志辉（组长） & 项目整合、文档撰写、实验分析可视化、报告汇总 & \texttt{/}, \texttt{report/},\texttt{README.md} \\
+        \addlinespace
+        朱俊慷 & 逻辑回归模型开发、训练与评估 & \texttt{models/lr\_model.py}, \texttt{scripts/train\_lr.py} \\
+        \addlinespace
+        李志政 & BiGRU与TextCNN + GloVe模型开发、训练与评估 & \texttt{models/bigru.py}, \texttt{models/textcnn.py}, \texttt{utils/} \\
+        \addlinespace
+        马扬子 & LLM API 接入、提示词设计、解释模块封装 & \texttt{explanation/}, \texttt{config/llm\_config.py} \\
+        \bottomrule
+    \end{tabular}
+\end{table}
 
 \subsubsection{数据预处理与特征工程}
 
